@@ -1,0 +1,24 @@
+# Model weights, llama.cpp runtimes and the packaged program are build/runtime assets, not source.
+/models/
+/runtimes/
+/app/
+/app.*/
+/dist/
+/build/
+
+# Live service state: credentials, logs, and the dashboard-edited configuration.
+*.key
+control.json
+*.log
+*.log.*
+/service.json
+/service.*.json
+/migration/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/

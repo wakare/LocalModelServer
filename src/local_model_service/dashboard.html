@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>本机模型服务 · 控制台</title>
+<style>
+:root{color-scheme:light;--ink:#172b3c;--muted:#637689;--line:#dce4eb;--blue:#2168d3;--green:#187663;--red:#b1433f}
+*{box-sizing:border-box}body{margin:0;background:#f3f6f9;color:var(--ink);font:14px/1.6 "Segoe UI","Microsoft YaHei UI",sans-serif}
+main{max-width:1120px;padding:36px 28px 24px;margin:auto}header{display:flex;justify-content:space-between;gap:24px;align-items:center;margin-bottom:30px}
+.brand{display:flex;align-items:center;gap:14px}.mark{width:46px;height:46px;background:var(--ink);color:white;border-radius:12px;display:grid;place-items:center;font:700 16px monospace}
+h1{margin:0;font-size:25px;letter-spacing:-.6px}h2{margin:0;font-size:17px}p{margin:5px 0;color:var(--muted)}.eyebrow{color:var(--muted);font-size:11px;letter-spacing:1.3px;text-transform:uppercase}
+.badge{display:inline-flex;align-items:center;gap:8px;background:#e3f1eb;color:var(--green);border-radius:20px;padding:6px 12px;font-size:12px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.badge.offline{background:#f8e8e5;color:var(--red)}.badge.loading{background:#fff1d9;color:#986b13}.subtle{font-size:12px;color:var(--muted)}
+.hero{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}.hero-top{padding:25px 26px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.model-name{font-size:22px;font-weight:650;overflow-wrap:anywhere;margin:8px 0}.model-description{max-width:620px}.model-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.tag{border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--muted)}
+.operations{display:flex;gap:8px;flex-wrap:wrap;padding:15px 26px;background:#fafbfd;border-top:1px solid var(--line);align-items:center}.operations .subtle{margin-left:auto}
+button{font:inherit;cursor:pointer;border:1px solid #cfdbe6;border-radius:7px;padding:8px 13px;background:#fff;color:var(--ink);transition:background .15s}button:hover:enabled{background:#edf3fc;border-color:#91b5e9}button:focus-visible{outline:3px solid #a2c3f3;outline-offset:2px}button:disabled{opacity:.45;cursor:default}.primary{background:var(--blue);border-color:var(--blue);color:#fff}.primary:hover:enabled{background:#1c58b3;color:#fff}.danger{color:var(--red)}
+.model-picker{padding:0 26px 22px}.model-picker label{display:block;font-weight:600;margin-bottom:8px}.picker-row{display:flex;gap:10px;align-items:center}.picker-row select{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1px solid #cfdbe6;border-radius:7px;background:white;color:var(--ink)}.picker-row select:focus-visible{outline:3px solid #a2c3f3}.picker-row select:disabled{background:#f3f6f9}.picker-row button{white-space:nowrap}.model-picker .subtle{margin-top:8px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin:20px 0}.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px}.metric-label{font-size:12px;color:var(--muted)}.metric{font-size:29px;font-weight:650;margin:7px 0 2px;font-variant-numeric:tabular-nums;line-height:1.3}.metric small{font-size:13px;font-weight:400;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1.4fr 1fr;gap:20px}.panel{padding:22px 25px;background:#fff;border:1px solid var(--line);border-radius:12px}.panel-title{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}.chart{width:100%;height:140px;display:block}.chart-grid{stroke:#e5ebf1;stroke-width:1}.chart-line{fill:none;stroke:var(--blue);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.row{display:flex;justify-content:space-between;gap:20px;padding:9px 0;border-bottom:1px solid #eef2f5}.row:last-child{border:0}.row span:first-child{color:var(--muted)}.row span:last-child{text-align:right;overflow-wrap:anywhere}.mono{font-family:Consolas,monospace;font-size:12px}
+.notice{margin-top:18px;background:#edf3fb;color:#31547d;padding:13px 17px;border-radius:9px;white-space:pre-wrap;overflow-wrap:anywhere}.notice.error{background:#fff0ed;color:var(--red)}.notice:empty{display:none}
+details{margin-top:20px;border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:#fff}summary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.65 Consolas,monospace;color:var(--muted);margin-bottom:0}
+#guide{display:none}#guide.open{display:block}#guide code{display:block;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace;padding:12px;background:#eef3f8;border-radius:6px;margin:12px 0}
+footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:22px 2px 0;color:var(--muted);font-size:12px}a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+@media(max-width:800px){main{padding:24px 18px}header{align-items:flex-start}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.hero-top{padding:22px}.operations{padding:15px 20px}.operations .subtle{width:100%;margin:0}.model-name{font-size:19px}}
+@media(max-width:450px){header{flex-direction:column;gap:14px}h1{font-size:22px}.hero-top{flex-direction:column}.cards{gap:10px}.card{padding:15px}.metric{font-size:25px}.panel{padding:19px}.brand{gap:10px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="brand"><div class="mark" aria-hidden="true">LM</div><div><div class="eyebrow">LOCAL MODEL SERVICE</div><h1>本机模型服务</h1></div></div>
+  <div><div id="gateway" class="badge loading" role="status"><span class="dot"></span><span id="gateway-label">正在连接</span></div><div id="updated" class="subtle" style="text-align:right;margin-top:5px">等待首次状态查询</div></div>
+</header>
+<section class="hero" aria-label="模型与操作">
+  <div class="hero-top"><div class="model-description"><div class="eyebrow">当前模型</div><div id="model" class="model-name">等待服务返回模型身份</div><p id="model-description">查询状态不会加载模型。</p><div class="model-tags"><span id="mode" class="tag">按需加载</span><span id="identity" class="tag mono">身份待确认</span></div></div><button id="refresh">刷新状态</button></div>
+  <div class="model-picker"><label for="model-select">选择模型</label><div class="picker-row"><select id="model-select" disabled><option>等待模型列表</option></select><button id="apply-model" class="primary" disabled>使用此模型</button></div><div id="model-detail" class="subtle">通过桌面控制台入口启用模型选择。</div><div class="subtle">切换会保存选择并释放旧模型；首次计算请求才加载新模型。请求和队列清空后可切换。</div></div>
+  <div class="operations"><button id="restart" class="primary" disabled>重启服务</button><button id="unload" disabled>释放模型资源</button><button id="stop" class="danger" disabled>关闭服务</button><button id="help">开启 / 操作说明</button><span id="permission" class="subtle">直接访问时仅查看状态</span></div>
+</section>
+<div id="notice" class="notice" role="status"></div>
+<section id="guide" class="panel" style="margin-top:18px" aria-label="开启方法"><h2>开启服务与控制台</h2><p>双击桌面的「本机模型服务」入口。服务未运行时会自动开启；已运行时会直接打开控制台并启用操作。</p><p>也可以双击安装目录中的 LocalModelService.exe，或在 PowerShell 执行：</p><code id="dashboard-command">连接服务后显示当前安装目录的启动命令。</code><p>关闭服务后本网页会显示离线。再次使用桌面入口即可开启。重启和关闭操作需要队列清空；「释放模型资源」会保留服务接口。</p></section>
+<section class="cards" aria-label="实时概览">
+  <div class="card"><div class="metric-label">模型状态</div><div id="state" class="metric">—</div><div id="state-note" class="subtle">服务与模型分别管理</div></div>
+  <div class="card"><div class="metric-label">等待请求</div><div class="metric"><span id="queued">—</span> <small id="capacity">/ —</small></div><div class="subtle">统一排队，按优先级处理</div></div>
+  <div class="card"><div class="metric-label">正在处理</div><div class="metric"><span id="active">—</span> <small>/ 1</small></div><div id="active-note" class="subtle">包含模型加载阶段</div></div>
+  <div class="card"><div class="metric-label">空闲释放倒计时</div><div id="idle" class="metric">—</div><div id="idle-note" class="subtle">空闲后关闭模型进程</div></div>
+</section>
+<section class="grid">
+  <div class="panel"><div class="panel-title"><h2>队列变化</h2><span class="subtle">当前页面的最近记录</span></div><svg class="chart" viewBox="0 0 500 140" role="img" aria-label="等待请求数量变化"><path class="chart-grid" d="M0 15H500 M0 70H500 M0 125H500"></path><polyline id="queue-line" class="chart-line" points="0,125 500,125"></polyline></svg><div class="subtle">可见时每 3 秒刷新，切换到后台暂停查询。</div></div>
+  <div class="panel"><div class="panel-title"><h2>服务信息</h2><span id="uptime" class="subtle">—</span></div><div class="row"><span>服务目录</span><span id="service-directory" class="mono">—</span></div><div class="row"><span>调用接口</span><span id="endpoint" class="mono">—</span></div><div class="row"><span>网关进程</span><span id="service-pid" class="mono">—</span></div><div class="row"><span>模型进程</span><span id="model-pid" class="mono">—</span></div><div class="row"><span>加载失败重试数</span><span id="restarts">—</span></div><div class="row"><span>恢复退避</span><span id="backoff">—</span></div></div>
+</section>
+<details><summary>模型身份与诊断信息</summary><pre id="diagnostics">等待服务响应。</pre></details>
+<footer><span id="policy">模型按需加载，状态查询不会延长空闲时间。</span><span><a href="/status" target="_blank" rel="noreferrer">原始状态 JSON</a> · <span id="version">独立本机服务</span></span></footer>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const storageKey = 'local-model-control:' + location.origin;
+  let token = '';
+  function loadCredential() {
+    const supplied = location.hash.slice(1);
+    if (/^[a-f0-9]{64}$/.test(supplied)) {
+      token = supplied;
+      try { sessionStorage.setItem(storageKey, token); } catch (_) {}
+      window.history.replaceState(null, '', location.pathname);
+    } else { try { token = sessionStorage.getItem(storageKey) || ''; } catch (_) { token = ''; } }
+  }
+  loadCredential();
+  let status = null, timer = null, refreshing = false, action = '', controller = null, operationInstance = '', connectionError = false, catalog = null, catalogLoading = false;
+  const history = [];
+  const states = {sleeping:'待命',loading:'加载中',ready:'已就绪',failed:'故障'};
+  const descriptions = {sleeping:'模型尚未加载或已空闲卸载；收到请求后自动加载。',loading:'正在加载模型并校验身份，请求会在队列中等待。',ready:'模型已加载，实际身份校验通过。',failed:'模型后端发生故障，后续请求会按退避规则尝试恢复。'};
+  const notify = (message, error=false) => { $('notice').textContent = message; $('notice').className = 'notice' + (error ? ' error' : ''); };
+  function controls() {
+    const allowed = !!token && !!status && !action && status.accepting_requests;
+    const busy = status && (status.active || status.queued > 0);
+    $('restart').disabled = !allowed || busy;
+    $('stop').disabled = !allowed || busy;
+    $('unload').disabled = !allowed || busy || !status.pid;
+    $('model-select').disabled = !allowed || !catalog || catalogLoading;
+    const choice = catalog && catalog.models.find(m => m.id === $('model-select').value);
+    $('apply-model').disabled = !allowed || busy || catalogLoading || !choice || !choice.available || choice.id === catalog.current;
+    $('permission').textContent = token ? (busy ? '请求完成后可操作' : '操作权限已启用') : '双击桌面入口可启用操作';
+  }
+  function describeChoice() {
+    const choice = catalog && catalog.models.find(m => m.id === $('model-select').value);
+    if (!choice) return;
+    $('model-detail').textContent = (choice.id === catalog.current ? '当前配置 · ' : '') + choice.filename + (choice.size_bytes ? ' · ' + (choice.size_bytes/1024**3).toFixed(1) + ' GB' : '') + (choice.warning ? ' · ' + choice.warning : '') + (!choice.available ? ' · 缺少：' + choice.missing.join('、') : '');
+    controls();
+  }
+  async function loadCatalog() {
+    if (!token || catalogLoading || document.hidden) return;
+    catalogLoading = true; controls();
+    const abort = new AbortController(), deadline = setTimeout(() => abort.abort(),3500);
+    try {
+      const response = await fetch('/admin/models',{cache:'no-store',signal:abort.signal,headers:{'X-Service-Control-Token':token}});
+      if (!response.ok) throw new Error('模型列表查询失败：HTTP '+response.status);
+      const previous = catalog, selected = $('model-select').value;
+      catalog = await response.json();
+      $('model-select').replaceChildren();
+      for (const model of catalog.models) {
+        const option = document.createElement('option'); option.value = model.id;
+        option.textContent = model.name + (model.id === catalog.current ? ' · 当前' : '') + (!model.available ? ' · 缺少文件' : ''); option.disabled = !model.available;
+        $('model-select').append(option);
+      }
+      $('model-select').value = previous && previous.current === catalog.current && catalog.models.some(m => m.id === selected && m.available) ? selected : catalog.current;
+      describeChoice();
+    } catch (error) { $('model-detail').textContent = error.message + '，可点击刷新状态重试。'; }
+    finally { clearTimeout(deadline); catalogLoading = false; controls(); }
+  }
+  function render(s) {
+    if (!action && (connectionError || (status && status.state === 'failed' && s.state !== 'failed'))) notify('');
+    connectionError = false;
+    const changed = status && status.identity !== s.identity;
+    status = s;
+    if (token && (!catalog || changed)) loadCatalog();
+    if (action === 'restart' && !s.service_action) { action = ''; notify('服务已重启，模型保持按需加载。'); }
+    if (action === 'stop' && s.instance_id !== operationInstance) { action = ''; notify('服务已重新开启。'); }
+    $('gateway').className = 'badge' + (s.service_action ? ' loading' : '');
+    $('gateway-label').textContent = s.service_action ? (s.service_action === 'restart' ? '重启中' : '关闭中') : '服务在线';
+    $('updated').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN', {hour12:false,timeZone:'Asia/Tokyo'}) + ' JST';
+    $('model').textContent = s.effective_model;
+    $('model-description').textContent = descriptions[s.state] || s.state;
+    $('mode').textContent = s.fallback ? '已回退普通推理' : (s.descriptor.draft_file ? '草稿加速已配置' : '普通推理');
+    $('identity').textContent = 'SHA256 ' + s.identity.slice(0,16) + '…';
+    $('state').textContent = states[s.state] || s.state;
+    $('state-note').textContent = s.state === 'sleeping' ? '模型进程已卸载' : (s.state === 'failed' ? '请查看下方错误原因' : '接口运行中');
+    $('queued').textContent = s.queued; $('capacity').textContent = '/ ' + s.queue_capacity;
+    $('active').textContent = s.active ? 1 : 0;
+    $('active-note').textContent = s.active ? '有请求正在处理' : '当前没有计算请求';
+    $('idle').textContent = s.idle_unload_in_seconds == null ? (s.pid ? '—' : '已释放') : Math.ceil(s.idle_unload_in_seconds) + ' 秒';
+    $('idle-note').textContent = '空闲 ' + s.idle_seconds + ' 秒后关闭模型进程';
+    $('endpoint').textContent = location.origin + '/v1';
+    $('service-directory').textContent = s.service_directory || '未提供';
+    if (s.dashboard_command) $('dashboard-command').textContent = s.dashboard_command;
+    $('service-pid').textContent = s.service_pid;
+    $('model-pid').textContent = s.pid || '未加载';
+    $('restarts').textContent = s.restarts;
+    $('backoff').textContent = s.retry_after_seconds ? s.retry_after_seconds + ' 秒' : '无';
+    const elapsed = Math.max(0,Math.floor(Date.now()/1000 - s.started_at));
+    $('uptime').textContent = '运行 ' + Math.floor(elapsed/3600) + ' 小时 ' + Math.floor(elapsed%3600/60) + ' 分钟';
+    $('version').textContent = 'v' + s.version;
+    $('diagnostics').textContent = JSON.stringify({模型:s.effective_model,身份:s.identity,回退:s.fallback,原因:s.reason || '无',参数:s.descriptor.parameters},null,2);
+    $('policy').textContent = '按需加载 · 空闲 ' + s.idle_seconds + ' 秒自动卸载 · 状态查询不唤醒模型';
+    if (s.state === 'failed') { notify(s.reason || '模型进程已退出，请检查服务日志。',true); }
+    else if (s.fallback && !action) { notify(s.reason || '当前使用普通推理模式。'); }
+    history.push(s.queued); if (history.length > 45) history.shift();
+    const values = history.length === 1 ? [history[0],history[0]] : history;
+    const scale = Math.max(2,...values);
+    $('queue-line').setAttribute('points',values.map((value,index) => (index*500/(values.length-1)).toFixed(1)+','+(125-value/scale*110).toFixed(1)).join(' '));
+    controls();
+  }
+  async function refresh() {
+    clearTimeout(timer);
+    if (refreshing || document.hidden) return;
+    refreshing = true; controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(),3500);
+    try {
+      const response = await fetch(token ? '/admin/status' : '/status', {cache:'no-store',signal:controller.signal,headers:token ? {'X-Service-Control-Token':token} : {}});
+      if (!response.ok) {
+        if (response.status === 403 && token) { token = ''; try { sessionStorage.removeItem(storageKey); } catch (_) {} notify('操作权限失效，请重新打开桌面控制台入口。',true); }
+        throw new Error('HTTP ' + response.status);
+      }
+      render(await response.json());
+    } catch (error) {
+      if (document.hidden) return;
+      connectionError = true;
+      status = null; $('gateway').className = 'badge offline';
+      $('gateway-label').textContent = action === 'restart' ? '正在重启，等待恢复' : '服务离线';
+      $('state').textContent = '未知'; $('state-note').textContent = '网关当前无法连接';
+      $('active').textContent = '—'; $('queued').textContent = '—'; $('idle').textContent = '—'; $('model-pid').textContent = '—'; $('service-pid').textContent = '—'; $('uptime').textContent = '—'; $('backoff').textContent = '—';
+      if (action === 'stop') notify('服务已关闭。双击桌面「本机模型服务」入口可重新开启。');
+      else if (action !== 'restart') notify('无法查询服务。若服务已关闭，请通过桌面控制台入口重新开启；也可稍后刷新。',true);
+      controls();
+    } finally {
+      clearTimeout(deadline); refreshing = false; controller = null;
+      if (!document.hidden) timer = setTimeout(refresh,status ? 3000 : 10000);
+    }
+  }
+  async function operate(kind) {
+    if (!token || !status || action) return;
+    const instance = status.instance_id;
+    operationInstance = instance;
+    const selection = $('model-select').value;
+    action = kind; controls(); notify(kind === 'model' ? '正在切换模型…' : kind === 'restart' ? '正在重启服务…' : kind === 'stop' ? '正在关闭服务…' : '正在释放模型资源…');
+    try {
+      const headers = {'X-Service-Control-Token':token,'X-Expected-Service-Instance':instance};
+      if (kind === 'model') { headers['Content-Type'] = 'application/json'; headers['X-Expected-Model-Identity'] = status.identity; }
+      const response = await fetch('/admin/'+kind,{method:'POST',headers,body:kind === 'model' ? JSON.stringify({id:selection}) : undefined});
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error.message);
+      if (kind === 'unload') { action = ''; notify('模型资源已释放，接口继续运行。'); }
+      if (kind === 'model') { action = ''; notify('已选择 ' + body.model + '。新模型将在首次计算请求时加载。'); await loadCatalog(); }
+    } catch (error) { action = ''; notify(error.message,true); }
+    setTimeout(refresh,700);
+  }
+  $('refresh').onclick = () => {refresh();loadCatalog();};
+  $('model-select').onchange = describeChoice;
+  $('apply-model').onclick = () => operate('model');
+  $('help').onclick = () => $('guide').classList.toggle('open');
+  for (const kind of ['restart','stop','unload']) $(''+kind).onclick = () => operate(kind);
+  document.addEventListener('visibilitychange',() => {clearTimeout(timer);if(document.hidden){if(controller)controller.abort();}else refresh();});
+  window.addEventListener('pagehide',() => {clearTimeout(timer);if(controller)controller.abort();});
+  window.addEventListener('hashchange',() => {loadCredential();catalog = null;refresh();});
+  refresh();
+})();
+</script>
+</body>
+</html>

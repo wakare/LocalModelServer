@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-model-service"
+version = "0.1.0"
+description = "Shared local OpenAI-compatible model gateway (llama.cpp and Strata backends) for this PC."
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.9,<1",
+]
+build = [
+    "pyinstaller>=6.15,<7",
+]
+
+[project.scripts]
+local-model-service = "local_model_service.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+local_model_service = ["dashboard.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

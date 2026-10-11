@@ -1,0 +1,33 @@
+{
+  "host": "127.0.0.1",
+  "port": 8080,
+  "assets_dir": "D:\\Work\\LocalModelService",
+  "idle_seconds": 900,
+  "queue_capacity": 32,
+  "request_timeout_seconds": 900,
+  "inference_timeout_seconds": 600,
+  "restart_attempts": 2,
+  "recovery_backoff_seconds": 2,
+  "max_body_bytes": 4194304,
+  "api_key_env": "",
+  "model": {
+    "model_preset": "strata",
+    "model": "qwen3.8-flash-next-iq3_s",
+    "model_path": "D:\\Work\\Strata-data\\models\\IQ3_S\\Qwen3.8-Flash-Next-GSQ-RCO-IQ3_S-00001-of-00002.gguf",
+    "server_executable": "",
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "server_gpu_layers": 99,
+    "server_context_size": 131072,
+    "server_parallel_slots": 1,
+    "server_reasoning": "off",
+    "server_flash_attention": "on",
+    "draft_model_path": "",
+    "server_draft_gpu_layers": 99,
+    "server_speculative_type": "none",
+    "server_draft_max_tokens": 0,
+    "server_draft_fallback": true,
+    "startup_timeout_seconds": 600,
+    "backend": "strata",
+    "strata_config": "D:\\Work\\Strata\\strata-iq3_s.json"
+  }
+}
