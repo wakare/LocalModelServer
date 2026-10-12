@@ -12,11 +12,12 @@ import uuid
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from local_model_service import __version__
 from local_model_service.broker import RequestBroker, ServiceError
 from local_model_service.catalog import model_catalog, select_model
+from local_model_service.history import RequestHistory
 from local_model_service.runtime import LocalModelServerError, ManagedRuntime
 
 
@@ -32,8 +33,10 @@ class ModelHTTPServer(ThreadingHTTPServer):
         restart_handler: Callable[[], None] | None = None,
         config_path: Path | None = None,
         dashboard_command: str = "",
+        history: RequestHistory | None = None,
     ) -> None:
         self.broker = broker
+        self.history = history or RequestHistory()
         self.instance_id = uuid.uuid4().hex
         self.control_token = uuid.uuid4().hex
         self.dashboard_token = dashboard_token or (uuid.uuid4().hex + uuid.uuid4().hex)
@@ -211,7 +214,7 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
-        dashboard = path in {"/", "/dashboard", "/admin/status", "/admin/models"}
+        dashboard = path in {"/", "/dashboard", "/history", "/admin/status", "/admin/models"}
         if not self._authorize(dashboard=dashboard, control=path.startswith("/admin/")):
             return
         if path in {"/", "/dashboard"}:
@@ -225,6 +228,9 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
                     self._json(200, model_catalog(self.server.broker.config))
             except OSError as error:
                 self._error(ServiceError("CATALOG_UNAVAILABLE", f"无法读取模型目录：{error}"))
+            return
+        if path == "/history":
+            self._history()
             return
         metadata = self.server.metadata()
         if path in {"/health", "/v1/health", "/status", "/admin/status"}:
@@ -248,6 +254,23 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
         else:
             self._error(ServiceError("NOT_FOUND", "接口不存在", 404))
 
+    def _history(self) -> None:
+        query = parse_qs(urlsplit(self.path).query)
+        try:
+            hours = float(query.get("hours", ["24"])[0])
+            limit = int(query.get("limit", ["200"])[0])
+            if not (0 < hours <= 24 * 30 and 0 < limit <= 1000):
+                raise ValueError
+        except ValueError:
+            self._error(ServiceError("INVALID_REQUEST", "hours 需在 0–720，limit 需在 1–1000", 400))
+            return
+        self._json(200, self.server.history.summary(hours, limit))
+
+    def _caller(self) -> str:
+        name = self.headers.get("X-Client-Name", "").strip()
+        agent = self.headers.get("User-Agent", "").strip()
+        return name or agent or "未标识"
+
     def _client_closed(self) -> bool:
         readable, _, _ = select.select([self.connection], [], [], 0)
         if readable:
@@ -269,8 +292,12 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
         if not self._authorize():
             return
         job = None
+        # Metadata for the request history; never the prompt or the output.
+        record = {"started_at": time.time(), "model": "", "stream": False, "priority": 0}
+        began = time.monotonic()
+        outcome = (0, "")
         try:
-            if urlsplit(self.path).path == "/shutdown":
+            if path == "/shutdown":
                 if not hmac.compare_digest(
                     self.headers.get("X-Service-Control-Token", ""), self.server.control_token
                 ):
@@ -278,8 +305,9 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
                 self._json(200, {"status": "stopping"})
                 self.server.stop_event.set()
                 return
-            if urlsplit(self.path).path != "/v1/chat/completions":
+            if path != "/v1/chat/completions":
                 raise ServiceError("NOT_FOUND", "接口不存在", 404)
+            outcome = (499, "CLIENT_CLOSED")
             if self.headers.get("Transfer-Encoding"):
                 raise ServiceError("INVALID_REQUEST", "请使用 Content-Length 请求", 400)
             try:
@@ -294,14 +322,17 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
                 raise ServiceError("INVALID_REQUEST", "请求体必须是 JSON", 400) from error
             if not isinstance(payload, dict) or not isinstance(payload.get("model"), str):
                 raise ServiceError("INVALID_REQUEST", "必须提供 model 字符串", 400)
+            record["model"] = payload["model"]
             if not isinstance(payload.get("messages"), list) or not payload["messages"]:
                 raise ServiceError("INVALID_REQUEST", "必须提供 messages 数组", 400)
             if not isinstance(payload.get("stream", False), bool):
                 raise ServiceError("INVALID_REQUEST", "stream 必须是布尔值", 400)
+            record["stream"] = payload.get("stream", False)
             try:
                 priority = int(self.headers.get("X-Request-Priority", "0"))
             except ValueError as error:
                 raise ServiceError("INVALID_REQUEST", "请求优先级无效", 400) from error
+            record["priority"] = priority
             expected = self.headers.get("X-Expected-Model-Identity", "")
             if expected and (
                 len(expected) != 64 or any(c not in "0123456789abcdef" for c in expected)
@@ -326,12 +357,37 @@ class ModelRequestHandler(BaseHTTPRequestHandler):
                 self._json(
                     200, job.result, identity=job.identity, effective_model=job.effective_model
                 )
+            outcome = (200, "")
         except ServiceError as error:
+            outcome = (error.status, error.code)
             self._error(error)
         except OSError as error:
             if job:
                 job.cancel()
             logging.debug("Client disconnected: %s", error)
+        finally:
+            if path == "/v1/chat/completions":
+                self._record_history(record, outcome, job, began)
+
+    def _record_history(self, record: dict, outcome: tuple, job, began: float) -> None:
+        usage = (job.usage if job else None) or {}
+        if job and job.effective_model:
+            record = {**record, "model": job.effective_model}
+
+        def count(key: str) -> int | None:
+            value = usage.get(key)
+            return value if isinstance(value, int) else None
+
+        self.server.history.record(
+            **record,
+            caller=self._caller(),
+            status=outcome[0],
+            error_code=outcome[1],
+            prompt_tokens=count("prompt_tokens"),
+            completion_tokens=count("completion_tokens"),
+            queue_ms=round((job.started - job.submitted) * 1000) if job and job.started else None,
+            total_ms=round((time.monotonic() - began) * 1000),
+        )
 
     def _admin_action(self, path: str) -> None:
         if path not in {"/admin/stop", "/admin/restart", "/admin/unload", "/admin/model"}:

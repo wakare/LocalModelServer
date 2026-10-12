@@ -9,6 +9,7 @@
 # Live service state: credentials, logs, and the dashboard-edited configuration.
 *.key
 control.json
+requests.db*
 *.log
 *.log.*
 /service.json

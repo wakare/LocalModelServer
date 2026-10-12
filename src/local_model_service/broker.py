@@ -30,6 +30,8 @@ class RequestJob:
     expected_identity: str = ""
     stream: Callable[[bytes | None, str, str], None] | None = None
     submitted: float = field(default_factory=time.monotonic)
+    started: float | None = None
+    usage: dict | None = None
     done: threading.Event = field(default_factory=threading.Event)
     cancelled: threading.Event = field(default_factory=threading.Event)
     result: dict | None = None
@@ -46,6 +48,20 @@ class RequestJob:
             if self.upstream_socket:
                 with suppress(OSError):
                     self.upstream_socket.shutdown(socket.SHUT_RDWR)
+
+
+def _usage(chunk: dict) -> dict | None:
+    """Token counts from an OpenAI usage block, or llama.cpp timings as a fallback."""
+    usage = chunk.get("usage")
+    if isinstance(usage, dict) and "prompt_tokens" in usage:
+        return usage
+    timings = chunk.get("timings")
+    if isinstance(timings, dict) and "prompt_n" in timings:
+        return {
+            "prompt_tokens": timings.get("prompt_n"),
+            "completion_tokens": timings.get("predicted_n"),
+        }
+    return None
 
 
 class RequestBroker:
@@ -199,6 +215,7 @@ class RequestBroker:
                     )
                     self._pending.remove(job)
                     self._active = job
+                    job.started = time.monotonic()
                 try:
                     if job.cancelled.is_set() or time.monotonic() >= job.deadline:
                         raise ServiceError("REQUEST_EXPIRED", "请求已取消或排队超时", 504)
@@ -278,6 +295,9 @@ class RequestBroker:
                     if not line:
                         break
                     job.stream(line, job.identity, job.effective_model)
+                    if line.startswith(b"data: {") and (b'"usage"' in line or b'"timings"' in line):
+                        with suppress(ValueError):
+                            job.usage = _usage(json.loads(line[6:])) or job.usage
                     if line.strip() == b"data: [DONE]":
                         completed = True
                 if not completed and not job.cancelled.is_set():
@@ -292,6 +312,7 @@ class RequestBroker:
                     or job.result.get("model") != job.effective_model
                 ):
                     raise ServiceError("INVALID_BACKEND_IDENTITY", "backend 响应模型身份错误", 502)
+                job.usage = _usage(job.result)
         finally:
             with job.lock:
                 job.connection = None
