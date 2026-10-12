@@ -8,6 +8,7 @@ import os
 from urllib.error import HTTPError
 from urllib.parse import urlparse
 
+from local_model_service import __version__
 from local_model_service.config import is_loopback_endpoint
 
 
@@ -76,6 +77,7 @@ def post_chat(endpoint: str, payload: bytes, headers: dict, timeout: float) -> t
     )
     connection = connection_type(parsed.hostname, parsed.port, timeout=timeout)
     try:
+        headers = {"User-Agent": f"local-model-service-client/{__version__}", **headers}
         connection.request("POST", parsed.path, body=payload, headers=headers)
         response = connection.getresponse()
         body = response.read(16 * 1024 * 1024 + 1)

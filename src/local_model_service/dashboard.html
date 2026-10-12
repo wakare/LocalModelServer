@@ -25,7 +25,9 @@ button{font:inherit;cursor:pointer;border:1px solid #cfdbe6;border-radius:7px;pa
 details{margin-top:20px;border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:#fff}summary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.65 Consolas,monospace;color:var(--muted);margin-bottom:0}
 #guide{display:none}#guide.open{display:block}#guide code{display:block;overflow-wrap:anywhere;font:12px/1.6 Consolas,monospace;padding:12px;background:#eef3f8;border-radius:6px;margin:12px 0}
 footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:22px 2px 0;color:var(--muted);font-size:12px}a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
-@media(max-width:800px){main{padding:24px 18px}header{align-items:flex-start}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.hero-top{padding:22px}.operations{padding:15px 20px}.operations .subtle{width:100%;margin:0}.model-name{font-size:19px}}
+.history{margin-top:20px}.history select{font:inherit;padding:6px 10px;border:1px solid #cfdbe6;border-radius:7px;background:#fff;color:var(--ink)}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}.stat{background:#f7f9fb;border-radius:9px;padding:11px 14px}.stat b{display:block;font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.table-wrap{overflow-x:auto;margin-top:6px}table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}th,td{text-align:left;padding:7px 10px;border-bottom:1px solid #eef2f5;white-space:nowrap}th{font-weight:600;color:var(--muted);font-size:12px}td.num,th.num{text-align:right}td.caller{max-width:260px;overflow:hidden;text-overflow:ellipsis}.ok{color:var(--green)}.bad{color:var(--red)}h3{font-size:14px;margin:18px 0 4px}
+@media(max-width:800px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:24px 18px}header{align-items:flex-start}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}.hero-top{padding:22px}.operations{padding:15px 20px}.operations .subtle{width:100%;margin:0}.model-name{font-size:19px}}
 @media(max-width:450px){header{flex-direction:column;gap:14px}h1{font-size:22px}.hero-top{flex-direction:column}.cards{gap:10px}.card{padding:15px}.metric{font-size:25px}.panel{padding:19px}.brand{gap:10px}}
 </style>
 </head>
@@ -51,6 +53,13 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;paddin
 <section class="grid">
   <div class="panel"><div class="panel-title"><h2>队列变化</h2><span class="subtle">当前页面的最近记录</span></div><svg class="chart" viewBox="0 0 500 140" role="img" aria-label="等待请求数量变化"><path class="chart-grid" d="M0 15H500 M0 70H500 M0 125H500"></path><polyline id="queue-line" class="chart-line" points="0,125 500,125"></polyline></svg><div class="subtle">可见时每 3 秒刷新，切换到后台暂停查询。</div></div>
   <div class="panel"><div class="panel-title"><h2>服务信息</h2><span id="uptime" class="subtle">—</span></div><div class="row"><span>服务目录</span><span id="service-directory" class="mono">—</span></div><div class="row"><span>调用接口</span><span id="endpoint" class="mono">—</span></div><div class="row"><span>网关进程</span><span id="service-pid" class="mono">—</span></div><div class="row"><span>模型进程</span><span id="model-pid" class="mono">—</span></div><div class="row"><span>加载失败重试数</span><span id="restarts">—</span></div><div class="row"><span>恢复退避</span><span id="backoff">—</span></div></div>
+</section>
+<section class="panel history" aria-label="历史请求">
+  <div class="panel-title"><h2>历史请求</h2><span><label for="history-window" class="subtle">时间范围 </label><select id="history-window"><option value="1">最近 1 小时</option><option value="24" selected>最近 24 小时</option><option value="168">最近 7 天</option><option value="720">最近 30 天</option></select></span></div>
+  <div class="stats"><div class="stat"><span class="metric-label">请求数</span><b id="h-requests">—</b></div><div class="stat"><span class="metric-label">成功 / 失败</span><b><span id="h-ok" class="ok">—</span> / <span id="h-failed" class="bad">—</span></b></div><div class="stat"><span class="metric-label">输入 tokens</span><b id="h-prompt">—</b></div><div class="stat"><span class="metric-label">输出 tokens</span><b id="h-completion">—</b></div><div class="stat"><span class="metric-label">成功请求平均耗时</span><b id="h-latency">—</b></div></div>
+  <h3>按调用方</h3><div class="table-wrap"><table><thead><tr><th>调用方</th><th class="num">请求</th><th class="num">失败</th><th class="num">输入 tokens</th><th class="num">输出 tokens</th><th class="num">平均耗时</th></tr></thead><tbody id="h-callers"></tbody></table></div>
+  <h3>最近请求</h3><div class="table-wrap"><table><thead><tr><th>时间 (JST)</th><th>调用方</th><th>模型</th><th class="num">输入</th><th class="num">输出</th><th class="num">排队</th><th class="num">总耗时</th><th>结果</th></tr></thead><tbody id="h-recent"></tbody></table></div>
+  <div id="h-note" class="subtle" style="margin-top:8px">只记录请求的时间、调用方、模型、token 数和耗时，不保存提示词或输出内容。</div>
 </section>
 <details><summary>模型身份与诊断信息</summary><pre id="diagnostics">等待服务响应。</pre></details>
 <footer><span id="policy">模型按需加载，状态查询不会延长空闲时间。</span><span><a href="/status" target="_blank" rel="noreferrer">原始状态 JSON</a> · <span id="version">独立本机服务</span></span></footer>
@@ -197,15 +206,39 @@ footer{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;paddin
     } catch (error) { action = ''; notify(error.message,true); }
     setTimeout(refresh,700);
   }
-  $('refresh').onclick = () => {refresh();loadCatalog();};
+  const number = value => value == null ? '—' : value.toLocaleString('zh-CN');
+  const duration = ms => ms == null ? '—' : ms < 1000 ? ms + ' 毫秒' : (ms/1000).toFixed(ms < 60000 ? 1 : 0) + ' 秒';
+  const callerName = caller => caller.startsWith('local-model-service-client/') ? '阅读助手 (' + caller + ')' : caller;
+  const cell = (text, className='') => { const td = document.createElement('td'); td.textContent = text; if (className) td.className = className; return td; };
+  let historyTimer = null, historyLoading = false;
+  async function loadHistory() {
+    clearTimeout(historyTimer);
+    if (historyLoading || document.hidden) return;
+    historyLoading = true;
+    const abort = new AbortController(), deadline = setTimeout(() => abort.abort(),3500);
+    try {
+      const response = await fetch('/history?limit=100&hours=' + $('history-window').value,{cache:'no-store',signal:abort.signal});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const h = await response.json(), t = h.totals;
+      $('h-requests').textContent = number(t.requests); $('h-ok').textContent = number(t.succeeded); $('h-failed').textContent = number(t.failed);
+      $('h-prompt').textContent = number(t.prompt_tokens); $('h-completion').textContent = number(t.completion_tokens); $('h-latency').textContent = duration(t.average_success_ms);
+      $('h-callers').replaceChildren(...(h.callers.length ? h.callers.map(c => { const tr = document.createElement('tr'); tr.append(cell(callerName(c.caller),'caller'),cell(number(c.requests),'num'),cell(number(c.failed),'num' + (c.failed ? ' bad' : '')),cell(number(c.prompt_tokens),'num'),cell(number(c.completion_tokens),'num'),cell(duration(c.average_ms),'num')); tr.cells[0].title = c.caller; return tr; }) : [(() => { const tr = document.createElement('tr'); const td = cell('这段时间没有请求','subtle'); td.colSpan = 6; tr.append(td); return tr; })()]));
+      $('h-recent').replaceChildren(...h.recent.map(r => { const tr = document.createElement('tr'); const when = new Date(r.started_at*1000).toLocaleString('zh-CN',{hour12:false,timeZone:'Asia/Tokyo',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}); tr.append(cell(when),cell(callerName(r.caller),'caller'),cell(r.model + (r.stream ? ' · 流式' : '')),cell(number(r.prompt_tokens),'num'),cell(number(r.completion_tokens),'num'),cell(duration(r.queue_ms),'num'),cell(duration(r.total_ms),'num'),cell(r.status === 200 ? '成功' : r.error_code + ' (' + r.status + ')', r.status === 200 ? 'ok' : 'bad')); tr.cells[1].title = r.caller; return tr; }));
+      $('h-note').textContent = '显示最近 ' + h.recent.length + ' 条（最多 100 条）· 记录保留 ' + h.retention_days + ' 天 · 只记录时间、调用方、模型、token 数和耗时，不保存提示词或输出内容。';
+    } catch (error) { if (!document.hidden) $('h-note').textContent = '历史请求查询失败：' + error.message; }
+    finally { clearTimeout(deadline); historyLoading = false; if (!document.hidden) historyTimer = setTimeout(loadHistory,15000); }
+  }
+  $('history-window').onchange = loadHistory;
+  $('refresh').onclick = () => {refresh();loadCatalog();loadHistory();};
   $('model-select').onchange = describeChoice;
   $('apply-model').onclick = () => operate('model');
   $('help').onclick = () => $('guide').classList.toggle('open');
   for (const kind of ['restart','stop','unload']) $(''+kind).onclick = () => operate(kind);
-  document.addEventListener('visibilitychange',() => {clearTimeout(timer);if(document.hidden){if(controller)controller.abort();}else refresh();});
+  document.addEventListener('visibilitychange',() => {clearTimeout(timer);clearTimeout(historyTimer);if(document.hidden){if(controller)controller.abort();}else{refresh();loadHistory();}});
   window.addEventListener('pagehide',() => {clearTimeout(timer);if(controller)controller.abort();});
   window.addEventListener('hashchange',() => {loadCredential();catalog = null;refresh();});
   refresh();
+  loadHistory();
 })();
 </script>
 </body>

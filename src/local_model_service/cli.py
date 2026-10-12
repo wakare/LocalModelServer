@@ -21,6 +21,7 @@ from pathlib import Path
 
 from local_model_service.broker import RequestBroker
 from local_model_service.config import ModelSettings, ServiceSettings, default_service_dir
+from local_model_service.history import RequestHistory
 from local_model_service.presets import infer_local_model_preset, local_model_preset
 from local_model_service.runtime import ManagedRuntime, RuntimeFiles
 from local_model_service.server import ModelHTTPServer
@@ -189,6 +190,7 @@ def serve(config: ServiceSettings, config_path: Path) -> None:
             restart_handler=lambda: _restart_helper(config_path),
             config_path=config_path,
             dashboard_command=_dashboard_command(config_path),
+            history=RequestHistory(service_dir / "requests.db"),
         )
         control_path.write_text(
             json.dumps(
@@ -217,6 +219,7 @@ def serve(config: ServiceSettings, config_path: Path) -> None:
         broker.close()
         if server:
             server.server_close()
+            server.history.close()
             if control_path.exists():
                 control = json.loads(control_path.read_text(encoding="utf-8"))
                 if control.get("instance_id") == server.instance_id:
